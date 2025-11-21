@@ -124,7 +124,7 @@ python main.py version
 
 #### 界面截图
 
-![GD Law Crawler GUI](gd-law-crawler.png)
+![GD Law Crawler GUI](https://www.vivi141.com/upload/gd-law-crawler.png)
 
 **主要功能**：
 - 🎯 **爬取配置**：选择爬取模式（单个/批量）、政策类型、输出目录
@@ -436,12 +436,22 @@ python main.py crawl --type 1
 **中文名称**: 广东省法规爬虫工具
 
 ## 🙏 致谢
-
 - 广东省人大常委会法工委（数据来源）
-- 快代理（代理IP服务）
-- Python社区（优秀的开源库）
+- [快代理](https://www.kuaidaili.com/)（代理IP服务）
+- Python社区（优秀的开源库，如requests用于HTTP请求和会话管理、python-docx用于DOCX文档转换、tkinter用于GUI界面构建，以及众多其他开源贡献者提供的稳定工具和库，支持整个项目的开发和运行）
 
 ---
+
+## 💝 赞助支持
+如果您觉得这个项目对您有帮助，欢迎通过以下方式赞助，支持项目的持续开发和维护！
+
+### 微信赞助
+![微信收款二维码](https://www.vivi141.com/upload/mm_facetoface_collect_qrcode_1726138034524.png)
+
+### 支付宝赞助
+![支付宝收款二维码](https://www.vivi141.com/upload/1726138087557.jpg)
+
+**感谢您的支持！** 您的赞助将用于服务器费用、工具订阅和项目优化。任何金额的赞助都将激励我提供更好的功能和文档。
 
 ## 未来计划 🚀
 
