@@ -5,8 +5,8 @@
 **English**: GD Law Crawler | **中文**: 广东省法规爬虫工具
 
 [![GitHub](https://img.shields.io/badge/GitHub-ViVi141-blue?style=flat-square&logo=github)](https://github.com/ViVi141)
-[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
-[![Python](https://img.shields.io/badge/Python-3.8+-blue?style=flat-square&logo=python)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.14+-blue?style=flat-square&logo=python)](https://www.python.org/)
 
 **项目地址**: [https://github.com/ViVi141/gd-law-crawler](https://github.com/ViVi141/gd-law-crawler)
 
@@ -408,7 +408,26 @@ python main.py crawl --type 1
 
 ## 📄 许可证
 
-MIT License
+本项目采用 **Apache License 2.0** 开源许可证。
+
+**Apache License 2.0 特点**：
+
+✅ **允许**：
+- 商业使用
+- 修改和分发
+- 专利使用
+- 私有使用
+- 重新发布（需保留版权声明和许可证）
+
+📋 **要求**：
+- 必须保留版权声明
+- 必须包含许可证文件
+- 修改的文件必须注明变更
+- 如果包含 NOTICE 文件，必须保留
+
+**完整许可证条款**：请查看 [LICENSE](LICENSE) 文件
+
+**许可证链接**：https://www.apache.org/licenses/LICENSE-2.0
 
 ## 👥 作者
 
