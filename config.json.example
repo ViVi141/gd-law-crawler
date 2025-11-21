@@ -1,0 +1,26 @@
+{
+  "api_base_url": "https://www.gdpc.gov.cn:443/bascdata",
+  "request_delay": 2,
+  "retry_delay": 5,
+  "max_retries": 3,
+  "rate_limit_delay": 30,
+  "session_rotate_interval": 50,
+  "timeout": 30,
+  "page_size": 20,
+  "law_rule_types": [1, 2, 3],
+  "output_dir": "crawled_data",
+  "save_json": true,
+  "save_markdown": true,
+  "save_files": true,
+  "download_docx": true,
+  "download_doc": true,
+  "download_pdf": false,
+  "use_proxy": false,
+  "kuaidaili_api_key": "",
+  "log_level": "INFO",
+  "log_file": "crawler.log",
+  "window_width": 1200,
+  "window_height": 1000,
+  "theme": "light"
+}
+
