@@ -5,6 +5,7 @@
 import os
 import json
 import time
+import logging
 from typing import Dict, List, Optional, Callable
 from datetime import datetime
 
@@ -45,7 +46,7 @@ class PolicyCrawler:
     def request_stop(self):
         """请求停止爬取"""
         self.stop_requested = True
-        print("\n[停止] 收到停止请求，正在停止...")
+        logging.info("\n[停止] 收到停止请求，正在停止...")
     
     def _update_progress(self, **kwargs):
         """更新进度并触发回调"""
@@ -71,12 +72,12 @@ class PolicyCrawler:
         type_names = {1: "地方性法规", 2: "政府规章", 3: "规范性文件"}
         type_name = type_names.get(law_rule_type, f"类型{law_rule_type}")
         
-        print(f"\n搜索 {type_name} 列表...")
+        logging.info(f"\n▶ 正在获取【{type_name}】列表（仅标题和基本信息，不含详细内容）...")
         
         while True:
             # 检查停止标志
             if self.stop_requested:
-                print(f"[停止] 停止搜索 {type_name} 列表")
+                logging.info(f"  [停止] 停止获取 {type_name} 列表")
                 break
             
             result = self.api_client.search_policies(law_rule_type, page_num, page_size)
@@ -96,7 +97,10 @@ class PolicyCrawler:
                 policy = Policy.from_dict(row)
                 policies.append(policy)
             
-            print(f"  第 {page_num} 页: 获取 {len(rows)} 条，累计 {len(policies)}/{total} 条")
+            logging.info(f"  ├─ 列表第 {page_num} 页: {len(rows)} 条，累计 {len(policies)}/{total} 条")
+            
+            # 实时更新进度（显示用时）
+            self._update_progress()
             
             # 如果已获取所有数据，退出
             if len(rows) < page_size or len(policies) >= total:
@@ -105,7 +109,7 @@ class PolicyCrawler:
             page_num += 1
             time.sleep(self.config.request_delay)
         
-        print(f"[OK] {type_name} 共获取 {len(policies)} 条政策")
+        logging.info(f"  └─ 完成获取【{type_name}】列表，共 {len(policies)} 条政策")
         return policies
     
     def crawl_single_policy(self, policy: Policy) -> bool:
@@ -122,14 +126,14 @@ class PolicyCrawler:
             current_policy_title=policy.title
         )
         
-        print(f"\n爬取政策: {policy.title}")
-        print(f"ID: {policy.id}")
-        print("=" * 60)
+        logging.info(f"\n爬取政策: {policy.title}")
+        logging.info(f"ID: {policy.id}")
+        logging.info("=" * 60)
         
         # 1. 获取详情
         detail_data = self.api_client.get_policy_detail(policy.id)
         if not detail_data:
-            print("[X] 获取详情失败")
+            logging.info("[X] 获取详情失败")
             return False
         
         law_rule = detail_data.get('lawRule', {})
@@ -159,7 +163,7 @@ class PolicyCrawler:
         if self.config.get("save_markdown", True):
             self._generate_rag_markdown(policy, detail, markdown_content)
         
-        print("[OK] 政策爬取完成")
+        logging.info("   ✓ 政策详细内容爬取完成")
         return True
     
     def _download_and_convert_files(
@@ -191,12 +195,12 @@ class PolicyCrawler:
         if not target_files:
             return None
         
-        print(f"\n从 {len(attachments)} 个附件中筛选出 {len(target_files)} 个文件")
+        logging.info(f"\n从 {len(attachments)} 个附件中筛选出 {len(target_files)} 个文件")
         
         markdown_parts = []
         
         for i, att in enumerate(target_files, 1):
-            print(f"\n  [{i}/{len(target_files)}] 处理: {att.file_name}")
+            logging.info(f"\n  [{i}/{len(target_files)}] 处理: {att.file_name}")
             
             # 下载文件
             safe_name = "".join(c for c in att.file_name if c.isalnum() or c in (' ', '-', '_', '.')).strip()
@@ -204,10 +208,10 @@ class PolicyCrawler:
             save_path = f"{self.config.output_dir}/files/{policy.id}_{safe_name}{ext}"
             
             if self.api_client.download_file(att.file_path, save_path):
-                print(f"    [OK] 下载成功: {save_path}")
+                logging.info(f"    [OK] 下载成功: {save_path}")
                 
                 # 转换为Markdown
-                print("    转换为Markdown...")
+                logging.info("    转换为Markdown...")
                 content = self.converter.convert(save_path)
                 
                 if content:
@@ -218,11 +222,11 @@ class PolicyCrawler:
                 if i < len(target_files):
                     time.sleep(0.3)
             else:
-                print("    [X] 下载失败")
+                logging.info("    [X] 下载失败")
         
         if markdown_parts:
             result = '\n'.join(markdown_parts)
-            print(f"\n  [OK] 已合并 {len(target_files)} 个文件的内容")
+            logging.info(f"\n  [OK] 已合并 {len(target_files)} 个文件的内容")
             return result
         
         return None
@@ -234,9 +238,9 @@ class PolicyCrawler:
         try:
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
-            print(f"[OK] JSON已保存: {filepath}")
+            logging.info(f"[OK] JSON已保存: {filepath}")
         except Exception as e:
-            print(f"[X] JSON保存失败: {e}")
+            logging.info(f"[X] JSON保存失败: {e}")
     
     def _generate_rag_markdown(
         self,
@@ -329,10 +333,10 @@ class PolicyCrawler:
             with open(md_filepath, 'w', encoding='utf-8') as f:
                 f.write('\n'.join(md_lines))
             
-            print(f"[OK] Markdown已保存: {md_filepath}")
+            logging.info(f"[OK] Markdown已保存: {md_filepath}")
             
         except Exception as e:
-            print(f"[X] Markdown生成失败: {e}")
+            logging.info(f"[X] Markdown生成失败: {e}")
     
     def _get_next_file_number(self) -> int:
         """获取下一个文件编号"""
@@ -366,41 +370,70 @@ class PolicyCrawler:
         Returns:
             爬取进度
         """
-        self.progress = CrawlProgress()
-        self.progress.start_time = datetime.now()
+        # 在开始搜索列表时就设置start_time（开始计时）
+        # 保留已有的start_time（如果GUI已经设置），否则创建新的
+        if not hasattr(self, 'progress') or self.progress is None:
+            self.progress = CrawlProgress()
+            self.progress.start_time = datetime.now()
+        elif self.progress.start_time is None:
+            # 如果进度对象存在但没有start_time，设置它
+            self.progress.start_time = datetime.now()
+        # 如果进度对象已存在且有start_time，保留start_time，但重置计数
+        else:
+            # 保留start_time，但重置其他计数
+            original_start_time = self.progress.start_time
+            self.progress = CrawlProgress()
+            self.progress.start_time = original_start_time
+        
+        # 立即更新进度（显示开始时间和用时）
+        self._update_progress()
         
         all_policies = []
         
-        # 获取所有政策
+        # 获取所有政策（实时更新进度）
         for law_rule_type in law_rule_types:
             # 检查停止标志
             if self.stop_requested:
-                print("[停止] 停止获取政策列表")
+                logging.info("[停止] 停止获取政策列表")
                 break
             
+            # 搜索政策列表（此时已经开始计时）
             policies = self.search_all_policies(law_rule_type)
             all_policies.extend(policies)
+            
+            # 实时更新已获取的政策数量（临时显示）
+            self.progress.total_count = len(all_policies)
+            self._update_progress()  # 实时更新进度和用时
         
         # 如果已停止，返回当前进度
         if self.stop_requested:
             self.progress.end_time = datetime.now()
+            self._update_progress()
             return self.progress
         
+        # 最终确认总数并更新
         self.progress.total_count = len(all_policies)
         self._update_progress()
         
-        print(f"\n开始爬取，共 {len(all_policies)} 条政策")
-        print("=" * 60)
+        logging.info("\n" + "=" * 60)
+        logging.info(f"▶▶ 开始爬取政策详细内容，共 {len(all_policies)} 条政策")
+        logging.info("=" * 60)
         
         # 爬取每个政策
         for i, policy in enumerate(all_policies, 1):
             # 检查停止标志
             if self.stop_requested:
-                print("[停止] 停止爬取政策")
+                logging.info("[停止] 停止爬取政策")
                 break
             
-            print(f"\n进度: [{i}/{len(all_policies)}]")
+            logging.info(f"\n进度: [{i}/{len(all_policies)}]")
             
+            # 更新当前政策信息（在爬取前）
+            self.progress.current_policy_id = policy.id
+            self.progress.current_policy_title = policy.title
+            self._update_progress()
+            
+            # 爬取政策（crawl_single_policy内部也会更新当前政策信息，但这里先设置确保显示）
             success = self.crawl_single_policy(policy)
             
             if success:
@@ -414,6 +447,7 @@ class PolicyCrawler:
                     'reason': '爬取失败'
                 })
             
+            # 实时更新进度（每次爬取后立即更新）
             self._update_progress()
             
             # 请求间隔
@@ -423,13 +457,13 @@ class PolicyCrawler:
         self._update_progress()
         
         # 输出统计
-        print("\n" + "=" * 60)
-        print("爬取完成")
-        print("=" * 60)
-        print(f"总计: {self.progress.total_count} 条")
-        print(f"成功: {self.progress.completed_count} 条")
-        print(f"失败: {self.progress.failed_count} 条")
-        print(f"成功率: {self.progress.success_rate:.2f}%")
+        logging.info("\n" + "=" * 60)
+        logging.info("爬取完成")
+        logging.info("=" * 60)
+        logging.info(f"总计: {self.progress.total_count} 条")
+        logging.info(f"成功: {self.progress.completed_count} 条")
+        logging.info(f"失败: {self.progress.failed_count} 条")
+        logging.info(f"成功率: {self.progress.success_rate:.2f}%")
         
         return self.progress
     

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-GD Law Crawler (广东省法规爬虫工具) v1.0 - 统一入口
+GD Law Crawler (广东省法规爬虫工具) v1.1 - 统一入口
 GUI和命令行二合一版本
 """
 

@@ -1,4 +1,4 @@
-# GD Law Crawler (广东省法规爬虫工具) v1.0
+# GD Law Crawler (广东省法规爬虫工具) v1.1
 
 > **GUI和命令行二合一**的现代化政策爬虫工具
 
@@ -6,7 +6,8 @@
 
 [![GitHub](https://img.shields.io/badge/GitHub-ViVi141-blue?style=flat-square&logo=github)](https://github.com/ViVi141)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square)](LICENSE)
-[![Python](https://img.shields.io/badge/Python-3.14+-blue?style=flat-square&logo=python)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.8+-blue?style=flat-square&logo=python)](https://www.python.org/)
+[![Version](https://img.shields.io/badge/Version-1.1.0-green?style=flat-square)](https://github.com/ViVi141/gd-law-crawler/releases)
 
 **项目地址**: [https://github.com/ViVi141/gd-law-crawler](https://github.com/ViVi141/gd-law-crawler)
 
@@ -51,6 +52,7 @@ gd-law-crawler/
 ├── config.json.example        # 配置文件模板
 ├── requirements.txt           # 依赖清单
 ├── .gitignore                 # Git忽略文件
+├── build_exe.py               # 打包脚本（GUI版本）
 └── README.md                  # 本文档
 ```
 
@@ -75,7 +77,16 @@ cp config.json.example config.json
 
 **注意**：`config.json` 文件可能包含敏感信息（如API密钥），已添加到 `.gitignore` 中，不会被提交到Git仓库。
 
-### 2. 运行程序
+### 3. 打包成exe（可选）
+
+打包成Windows可执行文件。
+
+**快速打包**：
+```bash
+python build_exe.py
+```
+
+### 4. 运行程序
 
 #### GUI模式（图形界面）
 
@@ -448,11 +459,67 @@ python main.py crawl --type 1
 
 ---
 
-**版本**: 1.0.0  
-**发布时间**: 2025-11-21  
-**项目主页**: https://github.com/ViVi141/gd-law-crawler  
-**项目名称**: GD Law Crawler (gd-law-crawler)
+## 未来计划 🚀
 
-**如有问题，欢迎提Issue或联系我们！** 📧  
+### v1.2 计划功能
+
+#### 1. 多线程爬取与转换
+- **爬取线程池**: 使用线程池并行爬取多个政策，显著提升爬取速度
+- **转换线程池**: 将文档格式转换（DOCX/PDF → Markdown）与爬取分离，异步处理
+- **智能队列管理**: 实现生产者-消费者模式，平衡爬取与转换速度
+- **进度追踪**: 实时显示各线程工作状态
+
+#### 2. 多IP代理池并行爬取
+- **代理池管理**: 支持配置多个快代理API密钥或自定义代理列表
+- **智能轮询**: 自动轮换多个IP地址，避免单IP限流
+- **并发控制**: 每个IP独立线程，实现真正的并行爬取
+- **健康检查**: 实时检测代理可用性，自动剔除失效代理
+- **负载均衡**: 智能分配任务到不同IP，优化整体效率
+
+#### 3. 性能优化
+- **断点续爬**: 支持中断后从上次位置继续
+- **增量更新**: 只爬取新增或更新的政策
+- **缓存机制**: 缓存已爬取的列表数据，减少重复请求
+
+#### 4. 功能增强
+- **导出Excel**: 支持将政策信息导出为Excel表格
+- **全文搜索**: 在已爬取的Markdown文件中进行全文搜索
+- **定时任务**: 支持定时自动爬取，保持数据最新
+
+### 贡献代码
+
+欢迎提交 Pull Request 或提出 Issue！
+
+---
+
+## 版本历史 📋
+
+### v1.1.0 (2025-11-21)
+- ✨ 优化日志系统，使用标准logging模块
+- ✨ GUI日志支持字符级自动换行
+- ✨ 优化日志输出格式，清晰区分"获取列表"和"爬取详细内容"
+- ✨ 实时用时显示，独立定时器自动更新
+- ✨ 优化进度统计显示
+- 🐛 修复批量爬取时进度更新问题
+- 🐛 修复按钮状态管理问题
+
+### v1.0.0 (2025-11-21)
+- 🎉 首次发布
+- ✨ GUI和命令行二合一
+- ✨ 支持批量爬取和单个测试
+- ✨ 自动转换DOCX/DOC/PDF为Markdown
+- ✨ 生成RAG友好的格式
+- ✨ 支持快代理SDK
+- ✨ 完整的进度追踪和错误处理
+
+---
+
+**版本**: 1.1.0  
+**最后更新**: 2025-11-21  
+**项目主页**: https://github.com/ViVi141/gd-law-crawler  
+**项目名称**: GD Law Crawler (gd-law-crawler)  
+**作者**: ViVi141  
 **联系方式**: 747384120@qq.com
+
+**如有问题，欢迎提Issue或联系我们！** 📧
 
