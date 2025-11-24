@@ -5,8 +5,16 @@ API客户端模块 - 处理所有HTTP请求
 import requests
 import time
 import random
+import warnings
 from typing import Dict, Optional, Any
 from urllib.parse import quote
+
+# 禁用 urllib3 的 HeaderParsingError 警告（服务器响应头格式不完全标准，但不影响功能）
+try:
+    import urllib3
+    urllib3.disable_warnings(urllib3.exceptions.HeaderParsingError)
+except (ImportError, AttributeError):
+    pass
 
 from .config import Config
 
@@ -289,23 +297,61 @@ class APIClient:
         for retry in range(self.config.max_retries):
             try:
                 proxies = self._get_proxy(force_new=(retry > 0))
-                response = self.session.get(
-                    url,
-                    stream=True,
-                    timeout=60,
-                    proxies=proxies
-                )
-                response.raise_for_status()
+                
+                # 禁用 urllib3 的 HeaderParsingError 警告
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    try:
+                        import urllib3
+                        urllib3.disable_warnings(urllib3.exceptions.HeaderParsingError)
+                    except (ImportError, AttributeError):
+                        pass
+                    
+                    response = self.session.get(
+                        url,
+                        stream=True,
+                        timeout=60,
+                        proxies=proxies
+                    )
+                    response.raise_for_status()
                 
                 # 下载文件
-                with open(save_path, 'wb') as f:
-                    for chunk in response.iter_content(chunk_size=chunk_size):
-                        if chunk:
-                            f.write(chunk)
-                
-                return True
+                import os
+                try:
+                    with open(save_path, 'wb') as f:
+                        for chunk in response.iter_content(chunk_size=chunk_size):
+                            if chunk:
+                                f.write(chunk)
+                    
+                    # 检查文件是否成功下载
+                    if os.path.exists(save_path) and os.path.getsize(save_path) > 0:
+                        return True
+                    else:
+                        print("  [X] 下载失败：文件为空或不存在")
+                        return False
+                        
+                except Exception as download_error:
+                    # 即使下载过程中出错，也检查文件是否已部分下载
+                    if os.path.exists(save_path) and os.path.getsize(save_path) > 0:
+                        # 文件已部分下载，可能是 HeaderParsingError 导致的
+                        error_str = str(download_error)
+                        if 'HeaderParsingError' in error_str or 'NoBoundaryInMultipartDefect' in error_str:
+                            # 忽略这个解析错误，文件已成功下载
+                            return True
+                    raise  # 重新抛出异常
                 
             except Exception as e:
+                # 检查是否是 HeaderParsingError（文件可能已成功下载）
+                import os
+                error_str = str(e)
+                error_type = type(e).__name__
+                
+                if 'HeaderParsingError' in error_type or 'NoBoundaryInMultipartDefect' in error_str:
+                    # 检查文件是否已成功下载
+                    if os.path.exists(save_path) and os.path.getsize(save_path) > 0:
+                        # 文件已成功下载，忽略这个解析错误
+                        return True
+                
                 print(f"  [X] 下载失败: {e}")
                 
                 if retry < self.config.max_retries - 1:

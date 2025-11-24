@@ -156,12 +156,18 @@ class PolicyCrawler:
         if self.config.get("save_json", True):
             self._save_json(policy.id, detail.to_dict())
         
-        # 3. 下载并转换附件
-        markdown_content = self._download_and_convert_files(policy, attachments)
+        # 3. 获取文件编号（markdown 和 files 文件夹各自独立递增）
+        markdown_number = self._get_next_markdown_number()
+        file_number = self._get_next_file_number()
         
-        # 4. 生成RAG Markdown
+        # 4. 下载并转换附件（如果启用了保存文件）
+        markdown_content = None
+        if self.config.get("save_files", True):
+            markdown_content = self._download_and_convert_files(policy, attachments, file_number)
+        
+        # 5. 生成RAG Markdown
         if self.config.get("save_markdown", True):
-            self._generate_rag_markdown(policy, detail, markdown_content)
+            self._generate_rag_markdown(policy, detail, markdown_content, markdown_number)
         
         logging.info("   ✓ 政策详细内容爬取完成")
         return True
@@ -169,7 +175,8 @@ class PolicyCrawler:
     def _download_and_convert_files(
         self,
         policy: Policy,
-        attachments: List[FileAttachment]
+        attachments: List[FileAttachment],
+        file_number: int
     ) -> Optional[str]:
         """下载并转换附件文件
         
@@ -185,27 +192,80 @@ class PolicyCrawler:
         
         # 筛选需要下载的文件
         target_files = []
-        for att in attachments:
-            ext = att.file_ext.lower()
-            if (self.config.get("download_docx", True) and 'docx' in ext) or \
-               (self.config.get("download_doc", True) and 'doc' in ext and 'docx' not in ext) or \
-               (self.config.get("download_pdf", False) and 'pdf' in ext):
-                target_files.append(att)
+        
+        # 如果启用了"下载所有文件"选项，直接添加所有附件
+        if self.config.get("download_all_files", False):
+            target_files = attachments
+            logging.info(f"\n[下载所有文件] 已启用，将下载所有 {len(attachments)} 个附件（忽略文件类型）")
+        else:
+            # 按文件类型筛选
+            for att in attachments:
+                # 同时检查 file_ext 和从 file_name 提取的扩展名，确保准确性
+                file_ext_lower = (att.file_ext or "").lower().strip()
+                # 从文件名提取扩展名（去掉点号）
+                file_name_ext = os.path.splitext(att.file_name)[1].lower().strip('.')
+                
+                # 优先使用 file_name 的扩展名（更可靠），如果为空则使用 file_ext
+                ext_to_check = file_name_ext if file_name_ext else file_ext_lower
+                
+                # 如果扩展名都为空，跳过
+                if not ext_to_check:
+                    continue
+                
+                # 严格匹配扩展名（完全匹配，避免误判）
+                is_docx = ext_to_check == 'docx'
+                is_doc = ext_to_check == 'doc' and not is_docx
+                is_pdf = ext_to_check == 'pdf'
+                
+                # 根据配置决定是否下载
+                should_download = False
+                if is_docx and self.config.get("download_docx", True):
+                    should_download = True
+                elif is_doc and self.config.get("download_doc", True):
+                    should_download = True
+                elif is_pdf and self.config.get("download_pdf", False):
+                    should_download = True
+                
+                if should_download:
+                    target_files.append(att)
+            
+            if target_files:
+                logging.info(f"\n从 {len(attachments)} 个附件中筛选出 {len(target_files)} 个文件")
         
         if not target_files:
             return None
         
-        logging.info(f"\n从 {len(attachments)} 个附件中筛选出 {len(target_files)} 个文件")
-        
         markdown_parts = []
+        
+        # 准备政策名称的安全版本（用于文件命名）
+        safe_title = "".join(c for c in policy.title if c.isalnum() or c in (' ', '-', '_')).strip()
+        if not safe_title:
+            safe_title = f"政策_{policy.id[:8]}"
         
         for i, att in enumerate(target_files, 1):
             logging.info(f"\n  [{i}/{len(target_files)}] 处理: {att.file_name}")
             
-            # 下载文件
-            safe_name = "".join(c for c in att.file_name if c.isalnum() or c in (' ', '-', '_', '.')).strip()
+            # 获取附件文件名（去掉扩展名）
+            att_name_without_ext = os.path.splitext(att.file_name)[0]
             ext = os.path.splitext(att.file_name)[1] or f'.{att.file_ext}'
-            save_path = f"{self.config.output_dir}/files/{policy.id}_{safe_name}{ext}"
+            
+            # 比较附件名称与政策名称（去掉扩展名后比较）
+            # 如果附件名称与政策名称一致，使用简化命名；否则包含原文件名
+            if att_name_without_ext == policy.title:
+                # 附件名称与政策名称一致：递增数_政策名字.后缀名
+                # 如果有多个附件，添加序号避免冲突
+                if len(target_files) > 1:
+                    save_filename = f"{file_number:04d}_{safe_title}_{i}{ext}"
+                else:
+                    save_filename = f"{file_number:04d}_{safe_title}{ext}"
+            else:
+                # 附件名称与政策名称不同：递增数_政策名字_原有文件名.后缀名
+                safe_att_name = "".join(c for c in att_name_without_ext if c.isalnum() or c in (' ', '-', '_')).strip()
+                if not safe_att_name:
+                    safe_att_name = f"附件_{i}"
+                save_filename = f"{file_number:04d}_{safe_title}_{safe_att_name}{ext}"
+            
+            save_path = f"{self.config.output_dir}/files/{save_filename}"
             
             if self.api_client.download_file(att.file_path, save_path):
                 logging.info(f"    [OK] 下载成功: {save_path}")
@@ -246,7 +306,8 @@ class PolicyCrawler:
         self,
         policy: Policy,
         detail: PolicyDetail,
-        markdown_content: Optional[str]
+        markdown_content: Optional[str],
+        file_number: int
     ):
         """生成RAG格式的Markdown文件"""
         try:
@@ -322,7 +383,6 @@ class PolicyCrawler:
                 md_lines.append('> 请访问[来源链接](#基本信息)查看完整文档内容。')
             
             # 保存文件
-            file_number = self._get_next_file_number()
             safe_title = "".join(c for c in policy.title if c.isalnum() or c in (' ', '-', '_')).strip()
             if not safe_title:
                 safe_title = f"政策_{policy.id[:8]}"
@@ -338,8 +398,8 @@ class PolicyCrawler:
         except Exception as e:
             logging.info(f"[X] Markdown生成失败: {e}")
     
-    def _get_next_file_number(self) -> int:
-        """获取下一个文件编号"""
+    def _get_next_markdown_number(self) -> int:
+        """获取下一个 Markdown 文件编号（仅检查 markdown 文件夹）"""
         markdown_dir = f"{self.config.output_dir}/markdown"
         
         if not os.path.exists(markdown_dir):
@@ -352,6 +412,30 @@ class PolicyCrawler:
         
         numbers = []
         for filename in existing_files:
+            parts = filename.split('_', 1)
+            if parts and len(parts) >= 2 and parts[0].isdigit():
+                numbers.append(int(parts[0]))
+        
+        if not numbers:
+            return 1
+        
+        return max(numbers) + 1
+    
+    def _get_next_file_number(self) -> int:
+        """获取下一个附件文件编号（仅检查 files 文件夹）"""
+        files_dir = f"{self.config.output_dir}/files"
+        
+        if not os.path.exists(files_dir):
+            return 1
+        
+        existing_files = os.listdir(files_dir)
+        
+        if not existing_files:
+            return 1
+        
+        numbers = []
+        for filename in existing_files:
+            # 检查文件名是否以数字开头（格式：数字_...）
             parts = filename.split('_', 1)
             if parts and len(parts) >= 2 and parts[0].isdigit():
                 numbers.append(int(parts[0]))

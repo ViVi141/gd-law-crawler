@@ -1,4 +1,4 @@
-# GD Law Crawler (广东省法规爬虫工具) v1.1
+# GD Law Crawler (广东省法规爬虫工具) v1.2
 
 > **GUI和命令行二合一**的现代化政策爬虫工具
 
@@ -7,7 +7,7 @@
 [![GitHub](https://img.shields.io/badge/GitHub-ViVi141-blue?style=flat-square&logo=github)](https://github.com/ViVi141)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.8+-blue?style=flat-square&logo=python)](https://www.python.org/)
-[![Version](https://img.shields.io/badge/Version-1.1.0-green?style=flat-square)](https://github.com/ViVi141/gd-law-crawler/releases)
+[![Version](https://img.shields.io/badge/Version-1.2.0-green?style=flat-square)](https://github.com/ViVi141/gd-law-crawler/releases)
 
 **项目地址**: [https://github.com/ViVi141/gd-law-crawler](https://github.com/ViVi141/gd-law-crawler)
 
@@ -298,8 +298,10 @@ python main.py batch --proxy --kuaidaili-key "secret_id:secret_key"
 支持多种文档格式转换：
 
 - **DOCX**：使用 python-docx 直接转换
-- **DOC**：尝试多种方案（LibreOffice、poword、antiword）
+- **DOC**：使用 poword 库转换（DOC → DOCX → Markdown）
 - **PDF**：使用 pypdf 提取文本（仅支持文本型PDF）
+
+**注意**：DOC文件转换需要安装 poword 库：`pip install poword`
 
 ### 3. 自定义User-Agent
 
@@ -328,11 +330,13 @@ tkinter是Python内置库，如果缺失需要重新安装Python（勾选tcl/tk�
 
 ### Q2: DOC文件转换失败
 
-**A**: DOC格式需要额外工具支持：
+**A**: DOC格式转换需要安装 poword 库：
 
-1. **推荐**：安装LibreOffice（https://www.libreoffice.org/）
-2. **可选**：安装poword库（`pip install poword`）
-3. **Linux**：安装antiword（`sudo apt install antiword`）
+```bash
+pip install poword
+```
+
+程序会自动使用 poword 将 DOC 文件转换为 DOCX，然后再转换为 Markdown。无需安装任何外部程序。
 
 ### Q3: 爬取时遇到限流（429错误）
 
@@ -493,6 +497,14 @@ python main.py crawl --type 1
 
 ## 版本历史 📋
 
+### v1.2.0 (2025-11-24)
+- ✨ 新增"下载所有形式的附件"选项，支持下载任意格式的附件文件
+- ✨ 优化附件文件命名规则：附件名称与政策名称一致时使用简化命名
+- ✨ markdown 和 files 文件夹编号独立递增，互不干扰
+- 🐛 修复 DOC 文件转换，移除外部程序依赖，仅使用 poword 库
+- 🐛 修复 urllib3 HeaderParsingError 警告显示问题
+- 🐛 修复 PDF 文件未选择时仍会下载的问题
+
 ### v1.1.0 (2025-11-21)
 - ✨ 优化日志系统，使用标准logging模块
 - ✨ GUI日志支持字符级自动换行
@@ -513,8 +525,8 @@ python main.py crawl --type 1
 
 ---
 
-**版本**: 1.1.0  
-**最后更新**: 2025-11-21  
+**版本**: 1.2.0  
+**最后更新**: 2025-11-24  
 **项目主页**: https://github.com/ViVi141/gd-law-crawler  
 **项目名称**: GD Law Crawler (gd-law-crawler)  
 **作者**: ViVi141  

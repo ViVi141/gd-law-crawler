@@ -119,24 +119,43 @@ class CrawlTab:
         self.download_docx = tk.BooleanVar(value=self.config.get("download_docx", True))
         self.download_doc = tk.BooleanVar(value=self.config.get("download_doc", True))
         self.download_pdf = tk.BooleanVar(value=self.config.get("download_pdf", False))
+        self.download_all_files = tk.BooleanVar(value=self.config.get("download_all_files", False))
         
-        ttk.Checkbutton(
+        self.download_docx_check = ttk.Checkbutton(
             download_frame,
             text="下载DOCX文件",
-            variable=self.download_docx
-        ).grid(row=0, column=0, sticky="w", padx=5, pady=2)
+            variable=self.download_docx,
+            command=self._on_download_option_change
+        )
+        self.download_docx_check.grid(row=0, column=0, sticky="w", padx=5, pady=2)
         
-        ttk.Checkbutton(
+        self.download_doc_check = ttk.Checkbutton(
             download_frame,
             text="下载DOC文件",
-            variable=self.download_doc
-        ).grid(row=0, column=1, sticky="w", padx=5, pady=2)
+            variable=self.download_doc,
+            command=self._on_download_option_change
+        )
+        self.download_doc_check.grid(row=0, column=1, sticky="w", padx=5, pady=2)
         
-        ttk.Checkbutton(
+        self.download_pdf_check = ttk.Checkbutton(
             download_frame,
             text="下载PDF文件",
-            variable=self.download_pdf
-        ).grid(row=0, column=2, sticky="w", padx=5, pady=2)
+            variable=self.download_pdf,
+            command=self._on_download_option_change
+        )
+        self.download_pdf_check.grid(row=0, column=2, sticky="w", padx=5, pady=2)
+        
+        self.download_all_files_check = ttk.Checkbutton(
+            download_frame,
+            text="下载所有形式的附件",
+            variable=self.download_all_files,
+            command=self._on_download_all_change
+        )
+        self.download_all_files_check.grid(row=1, column=0, columnspan=3, sticky="w", padx=5, pady=(8, 2))
+        
+        # 初始化时检查状态，如果启用了"下载所有文件"，禁用其他选项
+        if self.download_all_files.get():
+            self._on_download_all_change()
         
         # 代理设置（优化输入框宽度：50字符）
         proxy_frame = ttk.LabelFrame(self.frame, text="代理设置（可选）", padding="10")
@@ -235,6 +254,27 @@ class CrawlTab:
             self.secret_id_entry.config(state="disabled")
             self.secret_key_entry.config(state="disabled")
     
+    def _on_download_all_change(self):
+        """下载所有文件选项改变事件"""
+        if self.download_all_files.get():
+            # 如果选择了"下载所有文件"，禁用其他选项
+            self.download_docx_check.config(state="disabled")
+            self.download_doc_check.config(state="disabled")
+            self.download_pdf_check.config(state="disabled")
+        else:
+            # 如果取消选择，启用其他选项
+            self.download_docx_check.config(state="normal")
+            self.download_doc_check.config(state="normal")
+            self.download_pdf_check.config(state="normal")
+    
+    def _on_download_option_change(self):
+        """文件类型选项改变事件"""
+        # 如果选择了任何特定文件类型，取消"下载所有文件"选项
+        if self.download_docx.get() or self.download_doc.get() or self.download_pdf.get():
+            if self.download_all_files.get():
+                self.download_all_files.set(False)
+                self._on_download_all_change()
+    
     def _browse_output_dir(self):
         """浏览输出目录"""
         directory = filedialog.askdirectory(
@@ -270,6 +310,7 @@ class CrawlTab:
             "download_docx": self.download_docx.get(),
             "download_doc": self.download_doc.get(),
             "download_pdf": self.download_pdf.get(),
+            "download_all_files": self.download_all_files.get(),
             "use_proxy": self.use_proxy.get(),
             "kuaidaili_api_key": kuaidaili_api_key
         }

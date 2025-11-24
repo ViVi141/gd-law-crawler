@@ -21,7 +21,7 @@ class MainWindow:
     def __init__(self):
         """初始化主窗口"""
         self.root = tk.Tk()
-        self.root.title("GD Law Crawler (广东省法规爬虫工具) v1.1")
+        self.root.title("GD Law Crawler (广东省法规爬虫工具) v1.2")
         
         # 加载配置
         self.config = Config()
@@ -113,7 +113,7 @@ class MainWindow:
         self._setup_logging()
         
         # 显示欢迎信息
-        logging.info("欢迎使用 GD Law Crawler (广东省法规爬虫工具) v1.1")
+        logging.info("欢迎使用 GD Law Crawler (广东省法规爬虫工具) v1.2")
         logging.info("请在\"爬取配置\"选项卡中设置参数，然后点击\"开始爬取\"按钮")
     
     def _on_start_crawl(self, crawl_type: str, **kwargs):

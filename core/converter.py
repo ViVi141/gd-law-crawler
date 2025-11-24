@@ -3,7 +3,6 @@
 """
 
 import os
-import sys
 from typing import Optional
 
 # 检查依赖库
@@ -204,7 +203,7 @@ class DocumentConverter:
             return None
     
     def doc_to_markdown(self, doc_path: str) -> Optional[str]:
-        """将DOC文件转换为Markdown
+        """将DOC文件转换为Markdown（使用poword库）
         
         Args:
             doc_path: DOC文件路径
@@ -213,60 +212,15 @@ class DocumentConverter:
             Markdown内容
         """
         if not os.path.exists(doc_path):
+            print(f"    [X] 文件不存在: {doc_path}")
             return None
         
-        # 方法1: LibreOffice命令行转换
-        content = self._try_libreoffice(doc_path)
-        if content:
-            return content
+        # 使用poword转换DOC -> DOCX -> Markdown
+        if not POWORD_AVAILABLE:
+            print("    [X] poword未安装，无法转换DOC文件")
+            print("    请安装: pip install poword")
+            return None
         
-        # 方法2: poword转换
-        if POWORD_AVAILABLE:
-            content = self._try_poword(doc_path)
-            if content:
-                return content
-        
-        # 方法3: antiword转换
-        content = self._try_antiword(doc_path)
-        if content:
-            return content
-        
-        print("    [X] DOC格式转换失败，建议安装LibreOffice")
-        return None
-    
-    def _try_libreoffice(self, doc_path: str) -> Optional[str]:
-        """使用LibreOffice转换DOC"""
-        import subprocess
-        import tempfile
-        
-        libreoffice_cmds = ['soffice', 'libreoffice', 'soffice.exe', 'libreoffice.exe']
-        
-        for cmd in libreoffice_cmds:
-            try:
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    base_name = os.path.splitext(os.path.basename(doc_path))[0]
-                    output_path = os.path.join(tmpdir, f'{base_name}.txt')
-                    
-                    result = subprocess.run(
-                        [cmd, '--headless', '--convert-to', 'txt', '--outdir', tmpdir, doc_path],
-                        capture_output=True,
-                        timeout=60,
-                        creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0
-                    )
-                    
-                    if result.returncode == 0 and os.path.exists(output_path):
-                        with open(output_path, 'r', encoding='utf-8', errors='ignore') as f:
-                            content = f.read().strip()
-                            if len(content) > 100:
-                                print("    [OK] 使用LibreOffice转换成功")
-                                return content
-            except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
-                continue
-        
-        return None
-    
-    def _try_poword(self, doc_path: str) -> Optional[str]:
-        """使用poword转换DOC"""
         try:
             import tempfile
             from poword.api.word import doc2docx
@@ -275,41 +229,23 @@ class DocumentConverter:
                 output_name = 'converted.docx'
                 docx_path = os.path.join(tmpdir, output_name)
                 
-                try:
-                    doc2docx(doc_path, tmpdir, output_name)
+                # 使用poword将DOC转换为DOCX
+                doc2docx(doc_path, tmpdir, output_name)
+                
+                if os.path.exists(docx_path):
+                    # 将DOCX转换为Markdown
+                    content = self.docx_to_markdown(docx_path)
+                    if content:
+                        print("    [OK] 使用poword转换DOC成功")
+                        return content
+                    else:
+                        print("    [X] DOCX转换失败")
+                        return None
+                else:
+                    print("    [X] poword转换失败，未生成DOCX文件")
+                    return None
                     
-                    if os.path.exists(docx_path):
-                        content = self.docx_to_markdown(docx_path)
-                        if content:
-                            print("    [OK] 使用poword转换成功")
-                            return content
-                except Exception:
-                    pass
-        except Exception:
-            pass
-        
-        return None
-    
-    def _try_antiword(self, doc_path: str) -> Optional[str]:
-        """使用antiword转换DOC"""
-        try:
-            import subprocess
-            result = subprocess.run(
-                ['antiword', doc_path],
-                capture_output=True,
-                text=True,
-                timeout=30,
-                encoding='utf-8',
-                errors='ignore'
-            )
-            
-            if result.returncode == 0 and result.stdout:
-                content = result.stdout.strip()
-                if len(content) > 100:
-                    print("    [OK] 使用antiword转换成功")
-                    return content
-        except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
-            pass
-        
-        return None
+        except Exception as e:
+            print(f"    [X] DOC转换失败: {e}")
+            return None
 

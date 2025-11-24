@@ -15,6 +15,7 @@
   "download_docx": true,
   "download_doc": true,
   "download_pdf": false,
+  "download_all_files": false,
   "use_proxy": false,
   "kuaidaili_api_key": "",
   "log_level": "INFO",

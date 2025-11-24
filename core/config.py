@@ -37,6 +37,7 @@ class Config:
         "download_docx": True,
         "download_doc": True,
         "download_pdf": False,
+        "download_all_files": False,  # 下载所有形式的附件（忽略文件类型）
         
         # 代理配置
         "use_proxy": False,
